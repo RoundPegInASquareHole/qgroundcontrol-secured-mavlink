@@ -388,8 +388,7 @@ Vehicle::~Vehicle()
     delete _utmspVehicle;
 #endif
 
-    delete _gimbalController;
-    _gimbalController = nullptr;
+    deleteGimbalController();
 }
 
 void Vehicle::prepareDelete()
@@ -407,6 +406,14 @@ void Vehicle::prepareDelete()
         qApp->processEvents();
     }
 #endif
+}
+
+void Vehicle::deleteGimbalController()
+{
+    if (_gimbalController) {
+        delete _gimbalController;
+        _gimbalController = nullptr;
+    }
 }
 
 void Vehicle::_offlineFirmwareTypeSettingChanged(QVariant varFirmwareType)

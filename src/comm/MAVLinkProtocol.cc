@@ -10,6 +10,8 @@
 #include <inttypes.h>
 #include <iostream>
 
+#include "chacha20.h"
+
 #include <QDebug>
 #include <QTime>
 #include <QApplication>
@@ -356,6 +358,35 @@ void MAVLinkProtocol::receiveBytes(LinkInterface* link, QByteArray b)
             if ((totalReceiveCounter[mavlinkChannel] & 0x1F) == 0) {
                 emit mavlinkMessageStatus(_message.sysid, totalSent, totalReceiveCounter[mavlinkChannel], totalLossCounter[mavlinkChannel], receiveLossPercent);
             }
+
+            /// \todo define the key and the nonce in the algorithm file and make them accessible for this file
+            // 256-bit key
+
+            //! ENCRYPT THE PAYLOAD OF THE MESSAGE BEFORE THE SIGAL IS EMMITED TO THE SLOTS THAT MODIFIES THE MAVLINK INSTPECTOR FIELDS IN THE UI
+            //!SEEMS TO WORK!!!!!!!!!!!!!!!!!!!
+            uint8_t chacha20_key[] = {
+                0x00, 0x01, 0x02, 0x03,
+                0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0a, 0x0b,
+                0x0c, 0x0d, 0x0e, 0x0f,
+                0x10, 0x11, 0x12, 0x13,
+                0x14, 0x15, 0x16, 0x17,
+                0x18, 0x19, 0x1a, 0x1b,
+                0x1c, 0x1d, 0x1e, 0x1f
+            };
+
+            // 96-bit nonce
+            uint8_t nonce[] = {
+                0x00, 0x00, 0x00, 0x00, 
+                0x00, 0x00, 0x00, 0x4a, 
+                0x00, 0x00, 0x00, 0x00
+            };
+
+            const char* _message_payload = _MAV_PAYLOAD(&_message);
+
+            uint8_t _decrypt[_message.len];
+            ChaCha20XOR(chacha20_key, 1, nonce, (uint8_t *)_message_payload, (uint8_t *)_decrypt, _message.len);
+            memcpy(_MAV_PAYLOAD_NON_CONST(&_message), (const char*)_decrypt, _message.len);
 
             // The packet is emitted as a whole, as it is only 255 - 261 bytes short
             // kind of inefficient, but no issue for a groundstation pc.
